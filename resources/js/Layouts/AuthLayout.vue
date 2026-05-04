@@ -26,6 +26,16 @@
 
             <!-- Konten halaman -->
             <slot />
+
+            <!-- Footer -->
+            <p class="text-center text-xs text-gray-400 pt-2">
+                Kode sumber aplikasi ini bisa dilihat
+                <a href="https://github.com/irchamaji/sibuk"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="font-medium hover:underline"
+                   style="color: #895129;">disini</a>.
+            </p>
         </div>
     </div>
 </template>

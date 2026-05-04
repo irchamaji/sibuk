@@ -137,6 +137,16 @@
             <main class="flex-1 p-6">
                 <slot />
             </main>
+
+            <!-- Footer -->
+            <footer class="border-t border-gray-200 px-6 py-3 text-center text-xs text-gray-400">
+                Kode sumber aplikasi ini bisa dilihat
+                <a href="https://github.com/irchamaji/sibuk"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="font-medium hover:underline"
+                   style="color: #895129;">disini</a>.
+            </footer>
         </div>
     </div>
 </template>
