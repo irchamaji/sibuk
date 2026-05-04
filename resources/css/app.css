@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Font utama aplikasi */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@layer base {
+    body {
+        font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    }
+}
+
+@layer components {
+    /* Tombol utama warna primary (coklat) */
+    .btn-primary {
+        @apply bg-primary text-white px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    /* Tombol secondary (outline) */
+    .btn-secondary {
+        @apply border border-primary text-primary px-4 py-2 rounded-lg font-medium hover:bg-light transition-colors;
+    }
+
+    /* Tombol bahaya (hapus) */
+    .btn-danger {
+        @apply bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors;
+    }
+
+    /* Input form standar */
+    .input-field {
+        @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary bg-white;
+    }
+
+    /* Label form */
+    .form-label {
+        @apply block text-sm font-medium text-gray-700 mb-1;
+    }
+
+    /* Card container */
+    .card {
+        @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6;
+    }
+
+    /* Card informasi audit (warna kuning) */
+    .card-audit {
+        @apply rounded-xl p-4 border-2 border-amber-400;
+        background-color: #E4D00A;
+    }
+
+    /* Badge status perizinan */
+    .badge-pengajuan {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800;
+    }
+    .badge-diizinkan {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800;
+    }
+    .badge-ditolak {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800;
+    }
+}

@@ -1,0 +1,54 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sibuk-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - ./storage:/var/www/html/storage
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+    networks:
+      - sibuk-network
+    depends_on:
+      - postgres
+
+  nginx:
+    image: nginx:alpine
+    container_name: sibuk-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - sibuk-network
+    depends_on:
+      - app
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: sibuk-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sibuk
+      POSTGRES_USER: sibuk_user
+      POSTGRES_PASSWORD: sibuk_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sibuk-network
+
+networks:
+  sibuk-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
