@@ -11,7 +11,7 @@
                 </div>
                 <h1 class="text-3xl font-bold" style="color: #895129;">SIBUK</h1>
                 <p class="text-sm text-gray-600 mt-1">Sistem Informasi Buka Usaha Kecil</p>
-                <p class="text-xs text-gray-500">Pemerintah Daerah Kota Contoh</p>
+                <p class="text-xs text-gray-500">Pemerintah Daerah Kota Hormuz</p>
             </div>
 
             <!-- Flash messages -->

@@ -56,176 +56,175 @@ Aplikasi ini berjalan secara publik dan dapat diakses oleh siapa saja untuk kepe
 
 ## Where to Look — Panduan Audit Kode Sumber
 
-Repositori ini bersifat publik untuk mendukung audit kode sumber. Berikut pemetaan area pengujian ke file dan baris kode yang relevan.
+Repositori ini bersifat publik untuk mendukung audit kode sumber. Berikut pemetaan **75 kontrol keamanan** (Pasal 26 huruf a–m) ke file dan baris kode yang relevan. Kontrol yang tidak diterapkan di lapisan aplikasi disertai keterangan lokasi alternatif yang perlu diperiksa.
+
+> **Legenda:** ⚠️ = celah/keterbatasan yang disengaja (intentional) atau perlu perhatian khusus · ❌ = tidak diimplementasikan di kode aplikasi
 
 ---
 
 ### a. Autentikasi
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Proses login (validasi kredensial) | `app/Http/Controllers/Auth/LoginController.php` | 27–35 |
-| Pengecekan akun terkunci | `app/Http/Controllers/Auth/LoginController.php` | 44–51 |
-| Mekanisme `Auth::attempt` | `app/Http/Controllers/Auth/LoginController.php` | 53 |
-| Blokir 5x gagal login (1 menit) | `app/Http/Controllers/Auth/LoginController.php` | 55–64 |
-| Proses registrasi akun baru | `app/Http/Controllers/Auth/RegisterController.php` | 29–57 |
-| Reset password via email token | `app/Http/Controllers/Auth/ForgotPasswordController.php` | 33–45, 68–86 |
-| Definisi field autentikasi di model | `app/Models/User.php` | 13–34 |
-| Pengecekan status kunci akun | `app/Models/User.php` | 37–40 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| a.1 | Manajemen kata sandi untuk autentikasi | `app/Http/Controllers/Auth/LoginController.php` | 26–53 | `Auth::attempt()` di baris 53 |
+| a.2 | Verifikasi kata sandi pada sisi server | `app/Http/Controllers/Auth/LoginController.php` | 37–53 | Lookup user lalu `Auth::attempt()` |
+| a.3 | Jumlah karakter, kombinasi, masa berlaku | `app/Http/Controllers/Auth/RegisterController.php` | 33–41 | min 8, mixedCase, angka; ⚠️ tanpa simbol (intentional); ⚠️ tanpa masa berlaku |
+| a.4 | Jumlah maksimum kesalahan pemasukan | `app/Http/Controllers/Auth/LoginController.php` | 56–64 | Kunci akun setelah 5× gagal selama 1 menit |
+| a.5 | Mekanisme pemulihan kata sandi | `app/Http/Controllers/Auth/ForgotPasswordController.php` | 27–44, 62–93 | Link reset via email; Laravel `Password::sendResetLink()` |
+| a.6 | Kerahasiaan kata sandi via kriptografi | `app/Models/User.php` · `app/Http/Controllers/Auth/RegisterController.php` | 32 · 56 | Cast `hashed` (bcrypt); `BCRYPT_ROUNDS=12` di `.env:13` |
+| a.7 | Jalur komunikasi diamankan | `bootstrap/app.php` · `docker/nginx/default.conf` | 17–25 · 1–32 | ❌ Tidak ada TLS di nginx; TLS di-terminate Cloudflare Tunnel; proxy di-trust di `bootstrap/app.php` |
 
 ---
 
 ### b. Manajemen Sesi
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Konstanta timeout sesi (1800 detik) | `app/Http/Middleware/CheckSessionTimeout.php` | 17 |
-| Logika cek idle dan paksa logout | `app/Http/Middleware/CheckSessionTimeout.php` | 26–42 |
-| Pembaruan waktu aktivitas terakhir | `app/Http/Middleware/CheckSessionTimeout.php` | 43 |
-| Regenerasi sesi saat login | `app/Http/Controllers/Auth/LoginController.php` | 75–76 |
-| Invalidasi sesi saat logout | `app/Http/Controllers/Auth/LoginController.php` | 87–91 |
-| Konfigurasi lifetime sesi (30 menit) | `.env` | 30 |
-| Driver sesi database | `.env` | 29 |
-| Enkripsi sesi (nonaktif) | `.env` | 31 |
-| Registrasi middleware sesi ke pipeline | `bootstrap/app.php` | 26 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| b.1 | Pengendali sesi untuk manajemen sesi | `app/Http/Middleware/CheckSessionTimeout.php` | 14–46 | Middleware idle-timeout kustom |
+| b.2 | Pengendali sesi dari kerangka kerja | `.env` · `database/migrations/0001_01_01_000000_create_users_table.php` | 29–30 · 41–48 | `SESSION_DRIVER=database`; tabel `sessions` bawaan Laravel |
+| b.3 | Pembuatan dan keacakan token sesi | `app/Http/Controllers/Auth/LoginController.php` | 74 | `session()->regenerate()` — token dikelola Laravel internal (`vendor/laravel/framework`) |
+| b.4 | Kondisi dan jangka waktu habis sesi | `app/Http/Middleware/CheckSessionTimeout.php` · `.env` | 17, 32–38 · 30 | `SESSION_TIMEOUT = 1800` detik; `SESSION_LIFETIME=30` |
+| b.5 | Validasi dan pencantuman session id | `database/migrations/0001_01_01_000000_create_users_table.php` | 42 | Session id di kolom `id` tabel `sessions`; validasi dikelola Laravel; ⚠️ tidak ada kustom validasi session id |
+| b.6 | Pelindungan token sesi terautentikasi | `app/Http/Controllers/Auth/LoginController.php` | 74, 89–90 | Regenerate saat login; invalidate + regenerateToken saat logout |
+| b.7 | Pelindungan duplikasi dan persetujuan | `app/Http/Controllers/Auth/LoginController.php` | 74 | `session()->regenerate()` cegah session fixation; ⚠️ tidak ada pembatasan satu sesi aktif per pengguna |
 
 ---
 
 ### c. Persyaratan Kontrol Akses
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Implementasi RBAC middleware | `app/Http/Middleware/CheckRole.php` | 13–27 |
-| Pengecekan role di model | `app/Models/User.php` | 43–47 |
-| Definisi role di enum migration | `database/migrations/0001_01_01_000000_create_users_table.php` | 20 |
-| Pembagian grup route berdasarkan role | `routes/web.php` | 41, 58, 66, 76 |
-| Route khusus pengguna biasa | `routes/web.php` | 58–61 |
-| Route khusus admin-pemda dan superadmin | `routes/web.php` | 66–73 |
-| Route khusus superadmin | `routes/web.php` | 76–82 |
-| Registrasi alias middleware role | `bootstrap/app.php` | 22–27 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| c.1 | Otorisasi pengguna (RBAC) | `app/Http/Middleware/CheckRole.php` · `routes/web.php` · `app/Models/User.php` | 15–27 · 41, 58, 66, 76 · 51–57 | Role enum: `pengguna`, `admin-pemda`, `superadmin`; definisi di migration baris 23 |
+| c.2 | Peringatan serangan otomatis | `app/Http/Controllers/Auth/LoginController.php` | 56–64 | Blokir 5× gagal login; ⚠️ tidak ada rate limiter/alert untuk endpoint lain; ❌ tidak ada notifikasi ke admin |
+| c.3 | Antarmuka sisi administrator | `routes/web.php` · `resources/js/Pages/Admin/` | 66–83 | Route `/admin/*` diproteksi `role:admin-pemda,superadmin` dan `role:superadmin` |
+| c.4 | Verifikasi token saat akses data dikecualikan | `app/Http/Controllers/PerizinanController.php` · `routes/web.php` | 88–94 · 41 | Middleware `auth` di semua route terproteksi; ⚠️ INTENTIONAL: raw SQL concat di baris 88–94 (SQL injection + potensi IDOR) |
 
 ---
 
 ### d. Validasi Input
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Validasi form login | `app/Http/Controllers/Auth/LoginController.php` | 27–35 |
-| Validasi form registrasi | `app/Http/Controllers/Auth/RegisterController.php` | 30–48 |
-| Validasi aturan password (tanpa simbol — intentional) | `app/Http/Controllers/Auth/RegisterController.php` | 33–41 |
-| Validasi form pengajuan perizinan | `app/Http/Controllers/PerizinanController.php` | 42–57 |
-| Validasi file upload (hanya ukuran, tanpa tipe — intentional) | `app/Http/Controllers/PerizinanController.php` | 47–49 |
-| Validasi update status perizinan oleh admin | `app/Http/Controllers/Admin/PerizinanController.php` | 51–58 |
-| Validasi update profil akun | `app/Http/Controllers/AkunController.php` | 22–33 |
-| Validasi ganti password | `app/Http/Controllers/AkunController.php` | 55–68 |
-| Validasi CRUD akun oleh superadmin | `app/Http/Controllers/Admin/AkunController.php` | 27–44, 65–78 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| d.1 | Validasi input pada sisi server | `app/Http/Controllers/Auth/LoginController.php` · `app/Http/Controllers/Auth/RegisterController.php` · `app/Http/Controllers/PerizinanController.php` · `app/Http/Controllers/Admin/PerizinanController.php` · `app/Http/Controllers/AkunController.php` · `app/Http/Controllers/Admin/AkunController.php` | 26–34 · 29–48 · 42–57 · 52–58 · 32–40, 57–69 · 33–49, 68–77 | Seluruh input divalidasi Laravel `$request->validate()` di server |
+| d.2 | Penolakan input saat validasi gagal | Seluruh controller di atas | — | `$request->validate()` otomatis return 422 + error ke form; `back()->withErrors()` di controller |
+| d.3 | Runtime environment tidak rentan | `Dockerfile` | 1, 18–28 | PHP 8.4-fpm-alpine; hanya extension minimal; ⚠️ tidak ada `composer audit` / `npm audit` di CI/CD (tidak ada pipeline) |
+| d.4 | Validasi positif seluruh input | `app/Http/Controllers/Auth/RegisterController.php` · `app/Http/Controllers/Admin/PerizinanController.php` · `app/Http/Controllers/Admin/AkunController.php` | 29–41 · 53 · 36 | Whitelist karakter/nilai: `required\|string\|email`, `in:Pengajuan,Diizinkan,Ditolak`, `in:pengguna,admin-pemda,superadmin` |
+| d.5 | Filter data tidak dipercaya | `app/Models/User.php` · `app/Models/Perizinan.php` | 14–21 · 9–18 | `$fillable` mencegah mass assignment; Eloquent ORM parameterize semua query (kecuali poin d.8) |
+| d.6 | Penggunaan fitur kode dinamis | `resources/js/` | — | ❌ Tidak ada `eval()` atau dynamic code execution di aplikasi; Vue.js reactive binding aman |
+| d.7 | Pelindungan konten skrip (XSS) | `resources/js/Pages/` | — | Vue.js escape `{{ }}` secara default; tidak ada `v-html`; ⚠️ tidak ada Content Security Policy (CSP) header |
+| d.8 | Pelindungan injeksi basis data | `app/Http/Controllers/PerizinanController.php` | 88–94 | ✅ Seluruh query lain pakai Eloquent ORM (parameterized); ⚠️ INTENTIONAL: raw SQL string concat di `show()` baris 88–94 |
 
 ---
 
 ### e. Kriptografi pada Verifikasi Statis
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Hashing password saat registrasi (bcrypt) | `app/Http/Controllers/Auth/RegisterController.php` | 56 |
-| Hashing password saat ganti password | `app/Http/Controllers/AkunController.php` | 77 |
-| Hashing password saat reset | `app/Http/Controllers/Auth/ForgotPasswordController.php` | 81 |
-| Verifikasi password lama (Hash::check) | `app/Http/Controllers/AkunController.php` | 72 |
-| Cast password sebagai hashed di model | `app/Models/User.php` | 32 |
-| Hashing password akun seed (bcrypt, rounds=12) | `database/seeders/DatabaseSeeder.php` | 24, 34, 44 |
-| Konfigurasi bcrypt rounds | `.env` | 16 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| e.1 | Algoritma kriptografi sesuai ketentuan | `app/Models/User.php` · `.env` | 32 · 13 | Cast `hashed` = bcrypt; `BCRYPT_ROUNDS=12`; ⚠️ data perizinan disimpan plaintext (tidak dienkripsi) |
+| e.2 | Autentikasi data yang dienkripsi | `app/Http/Controllers/AkunController.php` · `app/Http/Controllers/Auth/LoginController.php` | 72 · 53 | `Hash::check()` verifikasi password lama; `Auth::attempt()` memanggil `Hash::check()` internal |
+| e.3 | Manajemen kunci kriptografi | `.env` | 3 | `APP_KEY` tersimpan di `.env` di server; ⚠️ tidak ada rotation policy; ⚠️ tidak ada enkripsi data sensitif di database |
+| e.4 | Generator angka acak kriptografi | `app/Http/Controllers/Auth/ForgotPasswordController.php` | 77–85 | Token reset via Laravel `Password::reset()` menggunakan CSPRNG (`random_bytes()`); session token juga dari Laravel CSPRNG |
 
 ---
 
 ### f. Penanganan Error dan Pencatatan Log
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Raw SQL query tanpa exception handling (intentional leak) | `app/Http/Controllers/PerizinanController.php` | 84–97 |
-| String concatenation pada query SQL (intentional) | `app/Http/Controllers/PerizinanController.php` | 91–95 |
-| Konfigurasi error handler aplikasi | `bootstrap/app.php` | 29–31 |
-| Konfigurasi log channel dan level | `.env` | 17–19 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| f.1 | Konten pesan error | `app/Http/Controllers/PerizinanController.php` · `.env` | 84–97 · 4 | ⚠️ INTENTIONAL: raw SQL error bocor ke user (tidak ada `try/catch`); ⚠️ `APP_DEBUG=true` — stack trace tampil di response |
+| f.2 | Metode penanganan error | `bootstrap/app.php` | 40–42 | `withExceptions()` kosong — tidak ada handler kustom; Laravel default handler aktif; ⚠️ INTENTIONAL: raw SQL di `PerizinanController::show()` tanpa penanganan exception |
+| f.3 | Log tidak memuat informasi dikecualikan | `.env` | 15–18 | `LOG_LEVEL=debug` ⚠️ — berpotensi merekam data sensitif di log; perlu audit isi log |
+| f.4 | Cakupan log untuk penyelidikan insiden | `.env` · `docker-compose.prod.yml` | 15–18 · — | Log dikirim via stderr ke Docker log driver; ⚠️ tidak ada audit trail aksi pengguna (tidak ada event logging) |
+| f.5 | Pelindungan log dari akses tidak sah | `docker-compose.prod.yml` | — | Log hanya dapat diakses via `docker logs` (OS level); ❌ tidak ada enkripsi atau akses kontrol khusus pada log |
+| f.6 | Enkripsi data log untuk cegah injeksi log | — | — | ❌ Log ditulis plaintext ke stderr; tidak ada sanitasi input sebelum ditulis ke log |
+| f.7 | Sinkronisasi waktu | — | — | ❌ Tidak dikonfigurasi di aplikasi; ditangani OS/Docker host (TZ env var di `docker-compose.prod.yml` jika diset) |
 
 ---
 
 ### g. Proteksi Data
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Field tersembunyi dari serialisasi (password, token) | `app/Models/User.php` | 23–25 |
-| Data user yang di-share ke frontend (minimal) | `app/Http/Middleware/HandleInertiaRequests.php` | 20–28 |
-| Field yang dapat diisi massal (fillable) | `app/Models/User.php` | 13–20 |
-| Field yang dapat diisi massal (perizinan) | `app/Models/Perizinan.php` | 5–14 |
-| Primary key sequential / non-UUID (intentional IDOR) | `database/migrations/2026_05_04_015547_create_perizinans_table.php` | 16 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| g.1 | Identifikasi & penyimpanan salinan informasi dikecualikan | `app/Models/User.php` · `app/Http/Middleware/HandleInertiaRequests.php` | 23–26 · 22–28 | `$hidden = ['password', 'remember_token']`; frontend hanya terima `id, name, email, role` |
+| g.2 | Pelindungan informasi dikecualikan sementara | `.env` | 29, 31 | `SESSION_DRIVER=database` (tidak di file); ⚠️ `SESSION_ENCRYPT=false` — data sesi tidak dienkripsi |
+| g.3 | Pertukaran, penghapusan, dan audit informasi | `app/Http/Controllers/Admin/AkunController.php` | 116–126 | Penghapusan akun oleh superadmin; ⚠️ tidak ada fitur ekspor data pengguna; ❌ tidak ada audit trail |
+| g.4 | Penentuan jumlah parameter | `app/Models/User.php` · `app/Models/Perizinan.php` | 14–21 · 9–18 | `$fillable` membatasi parameter yang diproses Laravel |
+| g.5 | Data disimpan dengan aman | `docker-compose.prod.yml` · `database/migrations/2026_05_04_015547_create_perizinans_table.php` | 43–44 · 17 | Data di PostgreSQL named volume; ⚠️ tidak ada enkripsi database at-rest; ⚠️ INTENTIONAL: primary key sequential (IDOR vector) |
+| g.6 | Metode hapus dan ekspor data | `app/Http/Controllers/Admin/AkunController.php` | 116–126 | Hard delete akun; ❌ tidak ada fitur ekspor data; ❌ tidak ada soft delete |
+| g.7 | Pembersihan memori | — | — | ❌ Tidak dikontrol di lapisan aplikasi; ditangani garbage collector PHP dan OS |
 
 ---
 
 ### h. Keamanan Komunikasi
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Batas ukuran request (5MB) | `docker/nginx/default.conf` | 8 |
-| Konfigurasi URL aplikasi | `.env` | 5 |
-| Konfigurasi mailer (log — tanpa TLS aktif) | `.env` | 41–46 |
-| Tidak ada konfigurasi HTTPS/TLS di nginx lokal | `docker/nginx/default.conf` | 1–24 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| h.1 | Komunikasi terenkripsi | `bootstrap/app.php` · `docker/nginx/default.conf` | 17–25 · 25 | TLS di-terminate Cloudflare Tunnel; nginx HTTP only; `fastcgi_param HTTPS on` baris 25 |
+| h.2 | Koneksi masuk dan keluar aman | `.env` | 41–48 | Traffic masuk via Cloudflare (HTTPS); `MAIL_MAILER=log` (email tidak dikirim live); ⚠️ koneksi ke PostgreSQL tidak dienkripsi (Docker internal network) |
+| h.3 | Jenis algoritma dan alat pengujian | — | — | ❌ Tidak dikonfigurasi di aplikasi/nginx; cipher suite dikelola Cloudflare — lihat: **Cloudflare dashboard → SSL/TLS** |
+| h.4 | Sertifikat elektronik | — | — | ❌ Tidak ada sertifikat di kode/nginx; dikelola otomatis Cloudflare — lihat: **Cloudflare dashboard → SSL/TLS → Edge Certificates** |
 
 ---
 
 ### i. Pengendalian Kode Berbahaya
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| File upload tanpa validasi tipe/ekstensi (intentional) | `app/Http/Controllers/PerizinanController.php` | 47–49, 62–64 |
-| Penyimpanan file langsung ke public storage | `app/Http/Controllers/PerizinanController.php` | 63–64 |
-| Konfigurasi disk penyimpanan | `.env` | 36 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| i.1 | Analisis kode (SAST/DAST) | — | — | ❌ Tidak ada SAST/DAST tool; tidak ada CI/CD pipeline (direktori `.github/workflows/` tidak ada) |
+| i.2 | Kode sumber tidak mengandung kode berbahaya | `app/` · `resources/js/` · `composer.json` · `package.json` | — | Audit manual kode sumber; ⚠️ tidak ada verifikasi checksum dependency; tidak ada `composer audit` / `npm audit` terotomasi |
+| i.3 | Izin fitur atau sensor terkait privasi | `resources/js/Pages/` | — | Aplikasi web tidak meminta akses sensor device; Vue.js tidak memanggil browser permission API |
+| i.4 | Pelindungan integritas | `Dockerfile` · `docker-compose.prod.yml` | 48 · 12–17 | `composer dump-autoload --optimize`; ⚠️ bind-mount source code di prod (baris 12–17) — kode dapat dimodifikasi tanpa rebuild |
+| i.5 | Mekanisme pembaruan | `Dockerfile` | 37, 42 | Dependencies di-install saat build image; ❌ tidak ada mekanisme auto-update; update manual via `git pull` + Docker rebuild |
 
 ---
 
 ### j. Logika Bisnis
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Alur pengajuan perizinan (status default: Pengajuan) | `app/Http/Controllers/PerizinanController.php` | 67–78 |
-| Validasi transisi status oleh admin | `app/Http/Controllers/Admin/PerizinanController.php` | 51–65 |
-| Pembatasan pengajuan hanya untuk role pengguna | `routes/web.php` | 58–61 |
-| Definisi enum status perizinan | `database/migrations/2026_05_04_015547_create_perizinans_table.php` | 30 |
-| Relasi user → perizinan | `app/Models/User.php` | 50–53 |
-| Relasi perizinan → user | `app/Models/Perizinan.php` | 17–20 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| j.1 | Alur logika bisnis urutan realistis | `app/Http/Controllers/PerizinanController.php` · `app/Http/Controllers/Admin/PerizinanController.php` | 64–77 · 49–67 | Status default `Pengajuan` saat buat; admin update ke `Diizinkan`/`Ditolak` |
+| j.2 | Logika bisnis memiliki batasan dan validasi | `app/Http/Controllers/Admin/PerizinanController.php` · `database/migrations/2026_05_04_015547_create_perizinans_table.php` · `routes/web.php` | 52–58 · 35 · 58–61 | Enum status + validasi `in:`; hanya `role:pengguna` yang bisa ajukan perizinan |
+| j.3 | Monitor aktivitas tidak biasa | `app/Http/Controllers/Auth/LoginController.php` | 56–64 | Blokir login setelah 5× gagal; ⚠️ tidak ada monitoring aktivitas tidak biasa di luar login |
+| j.4 | Kontrol antiotomatisasi | `app/Http/Controllers/Auth/LoginController.php` | 56–64 | Blokir brute force login; ⚠️ tidak ada CAPTCHA; ❌ tidak ada `ThrottleRequests` middleware di endpoint lain |
+| j.5 | Peringatan serangan otomatis | `app/Http/Controllers/Auth/LoginController.php` | 58–63 | Pesan "akun dikunci" ke pengguna; ❌ tidak ada notifikasi ke admin saat serangan terdeteksi |
 
 ---
 
 ### k. File
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Proses penyimpanan file upload | `app/Http/Controllers/PerizinanController.php` | 59–64 |
-| Tidak ada validasi tipe MIME / ekstensi (intentional) | `app/Http/Controllers/PerizinanController.php` | 47–49 |
-| Batasan ukuran file di validasi Laravel (5MB) | `app/Http/Controllers/PerizinanController.php` | 49 |
-| Batasan ukuran request di nginx (5MB) | `docker/nginx/default.conf` | 8 |
-| Kolom path file di tabel perizinan | `database/migrations/2026_05_04_015547_create_perizinans_table.php` | 24 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| k.1 | Kuota file per pengguna | `app/Http/Controllers/PerizinanController.php` | 47–49 | ⚠️ Hanya `nullable\|string\|max:255` (nama file); ❌ tidak ada batas jumlah file; file tidak benar-benar diupload ke server (simulasi) |
+| k.2 | Validasi file sesuai tipe konten | `app/Http/Controllers/PerizinanController.php` · `resources/js/Pages/Perizinan/Create.vue` | 47–49 · 122–127 | ⚠️ INTENTIONAL: tidak ada validasi tipe MIME/ekstensi; frontend hanya menyimpan `file.name` (string), tidak transmit binary |
+| k.3 | Pelindungan metadata input dan file | `app/Http/Controllers/PerizinanController.php` | 62–63 | ⚠️ Nama file dari user langsung disimpan tanpa sanitasi path traversal; `$request->input('surat_kepemilikan')` |
+| k.4 | Pemindaian file dari sumber tidak dipercaya | — | — | ❌ Tidak ada antivirus/scanning; file tidak diupload ke server saat ini; jika implementasi diubah ke real upload, perlu ClamAV atau layanan serupa |
+| k.5 | Konfigurasi server untuk unduh file | `docker/nginx/default.conf` | 29–31 | Akses dotfiles diblokir; ❌ tidak ada konfigurasi `Content-Disposition` karena tidak ada file yang disimpan |
 
 ---
 
 ### l. Keamanan API dan Web Service
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Seluruh definisi route dan proteksi middleware | `routes/web.php` | 1–84 |
-| Pembagian route publik vs terautentikasi | `routes/web.php` | 22–40 (guest), 41–84 (auth) |
-| Data yang di-expose ke frontend via Inertia | `app/Http/Middleware/HandleInertiaRequests.php` | 18–35 |
-| Proteksi CSRF (via session middleware Laravel) | `bootstrap/app.php` | 15–28 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| l.1 | Konfigurasi layanan web | `docker/nginx/default.conf` · `bootstrap/app.php` · `routes/web.php` | 1–32 · 16–39 · 1–84 | Nginx + Laravel middleware pipeline + definisi route |
+| l.2 | URI API tidak expose informasi celah keamanan | `routes/web.php` · `database/migrations/2026_05_04_015547_create_perizinans_table.php` | 55 · 17 | ⚠️ INTENTIONAL: `/perizinan/{id}` dengan ID sequential mengekspos IDOR vector; `$table->id()` auto-increment |
+| l.3 | Keputusan otorisasi | `app/Http/Middleware/CheckRole.php` · `routes/web.php` | 15–27 · 41, 58, 66, 76 | RBAC middleware; `auth` middleware wajib untuk semua route terproteksi |
+| l.4 | RESTful HTTP methods untuk input valid | `routes/web.php` | 1–84 | `GET`/`POST`/`PUT`/`DELETE` sesuai resource; validasi input di controller sebelum proses |
+| l.5 | Validasi skema sebelum terima input | Seluruh controller | — | `$request->validate()` di semua controller sebelum menyentuh database (lihat d.1) |
+| l.6 | Pelindungan layanan berbasis web (CSRF) | `bootstrap/app.php` | 28–30 | CSRF via session middleware bawaan Laravel; `HandleInertiaRequests` di-append ke web middleware; ⚠️ tidak ada security response headers (CSP, HSTS, X-Frame-Options) |
+| l.7 | Kontrol antiotomatisasi | `app/Http/Controllers/Auth/LoginController.php` | 56–64 | Blokir brute force login; ❌ tidak ada `ThrottleRequests` middleware global; tidak ada CAPTCHA |
 
 ---
 
 ### m. Keamanan Konfigurasi
 
-| Aspek | File | Baris |
-|-------|------|-------|
-| Mode debug aplikasi (APP_DEBUG=true) | `.env` | 4 |
-| Konfigurasi database (kredensial plaintext) | `.env` | 21–26 |
-| Enkripsi sesi dinonaktifkan | `.env` | 31 |
-| Registrasi middleware global aplikasi | `bootstrap/app.php` | 15–28 |
-| Konfigurasi Docker container (environment vars) | `docker-compose.yml` | 14–16 |
-| Konfigurasi PHP-FPM dan web server | `Dockerfile` | 1–45 |
+| # | Kontrol | File | Baris | Catatan |
+|---|---------|------|-------|---------|
+| m.1 | Server dikonfigurasi sesuai rekomendasi | `Dockerfile` · `docker/nginx/default.conf` · `docker-compose.prod.yml` | 1–63 · 1–32 · 1–60 | PHP 8.4-fpm-alpine + nginx:alpine; ⚠️ `APP_DEBUG=true` di `.env:4` (seharusnya `false` di production) |
+| m.2 | Dokumentasi, salin konfigurasi, dependensi | `composer.json` · `composer.lock` · `package.json` · `package-lock.json` · `docker-compose.prod.yml` · `Dockerfile` · `README.md` | — | Seluruh dependensi terkunci via lockfile; infrastruktur terdokumentasi |
+| m.3 | Hapus fitur tidak diperlukan | `Dockerfile` · `.env` | 18–28, 37 · 4 | `composer install --no-dev`; extension PHP minimal; ⚠️ `APP_DEBUG=true` aktif di production |
+| m.4 | Validasi integritas aset eksternal | `public/build/` | — | Vite output dengan hashed filename untuk cache busting; ❌ tidak ada Subresource Integrity (SRI); semua aset lokal (tidak ada CDN eksternal) |
+| m.5 | Respons aplikasi dan konten aman | `app/Http/Controllers/PerizinanController.php` · `.env` | 84–97 · 4 | ⚠️ INTENTIONAL: raw SQL error message bocor di response; ⚠️ `APP_DEBUG=true` — stack trace tampil saat exception; ❌ tidak ada security headers di nginx |
 
 ---
 

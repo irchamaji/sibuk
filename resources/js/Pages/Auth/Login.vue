@@ -12,15 +12,15 @@
                     <div class="space-y-1 text-xs font-mono bg-black/10 rounded p-2">
                         <div>
                             <span class="font-semibold">Pengguna:</span>
-                            pengguna@email.com / Passwrod123
+                            pengguna@email.com / Password123
                         </div>
                         <div>
                             <span class="font-semibold">Admin Pemda:</span>
-                            admin@pemda.com / Passwrod123
+                            admin@pemda.com / Password123
                         </div>
                         <div>
                             <span class="font-semibold">Superadmin:</span>
-                            superadmin@pemda.com / Passwrod123
+                            superadmin@pemda.com / Password123
                         </div>
                     </div>
                 </div>

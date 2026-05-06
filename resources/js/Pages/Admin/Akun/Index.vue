@@ -50,6 +50,11 @@
                                             style="color: #29638A;">
                                         Edit
                                     </button>
+                                    <button @click="openPasswordModal(user)"
+                                            class="text-sm font-medium hover:underline"
+                                            style="color: #895129;">
+                                        Password
+                                    </button>
                                     <button @click="confirmDelete(user)"
                                             class="text-sm font-medium text-red-600 hover:underline">
                                         Hapus
@@ -121,6 +126,38 @@
             </div>
         </div>
 
+        <!-- Modal Ganti Password -->
+        <div v-if="showPasswordModal"
+             class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-xl w-full max-w-md shadow-xl">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <h4 class="text-base font-semibold text-gray-800">Ganti Password</h4>
+                    <p class="text-sm text-gray-500 mt-0.5">Akun: <strong>{{ passwordTarget?.name }}</strong></p>
+                </div>
+                <form @submit.prevent="submitPassword" class="p-6 space-y-4">
+                    <div>
+                        <label class="form-label">Password Baru</label>
+                        <input v-model="passwordForm.password" type="password" class="input-field"
+                               :class="{ 'border-red-500': passwordForm.errors.password }" />
+                        <p class="text-gray-500 text-xs mt-1">Min 8 karakter, huruf besar, kecil, dan angka.</p>
+                        <p v-if="passwordForm.errors.password" class="text-red-600 text-xs mt-1">{{ passwordForm.errors.password }}</p>
+                    </div>
+                    <div>
+                        <label class="form-label">Konfirmasi Password Baru</label>
+                        <input v-model="passwordForm.password_confirmation" type="password" class="input-field"
+                               :class="{ 'border-red-500': passwordForm.errors.password_confirmation }" />
+                        <p v-if="passwordForm.errors.password_confirmation" class="text-red-600 text-xs mt-1">{{ passwordForm.errors.password_confirmation }}</p>
+                    </div>
+                    <div class="flex items-center space-x-3 pt-2">
+                        <button type="submit" class="btn-primary" :disabled="passwordForm.processing">
+                            Simpan Password
+                        </button>
+                        <button type="button" @click="closePasswordModal" class="btn-secondary">Batal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Konfirmasi hapus -->
         <div v-if="deleteTarget"
              class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -148,10 +185,12 @@ const props = defineProps({
 });
 
 // State modal
-const showCreateModal = ref(false);
-const showEditModal   = ref(false);
-const deleteTarget    = ref(null);
-const editingUser     = ref(null);
+const showCreateModal  = ref(false);
+const showEditModal    = ref(false);
+const showPasswordModal = ref(false);
+const deleteTarget     = ref(null);
+const editingUser      = ref(null);
+const passwordTarget   = ref(null);
 
 // Form tambah akun baru
 const createForm = useForm({
@@ -167,6 +206,12 @@ const editForm = useForm({
     name:  '',
     email: '',
     role:  'pengguna',
+});
+
+// Form ganti password
+const passwordForm = useForm({
+    password:              '',
+    password_confirmation: '',
 });
 
 // Form aktif (tambah atau edit)
@@ -201,6 +246,27 @@ const submitCreate = () => {
 const submitEdit = () => {
     editForm.put(route('admin.akun.update', editingUser.value.id), {
         onSuccess: closeModal,
+    });
+};
+
+// Buka modal ganti password
+const openPasswordModal = (user) => {
+    passwordTarget.value = user;
+    passwordForm.reset();
+    showPasswordModal.value = true;
+};
+
+// Tutup modal password
+const closePasswordModal = () => {
+    showPasswordModal.value = false;
+    passwordTarget.value = null;
+    passwordForm.reset();
+};
+
+// Submit ganti password
+const submitPassword = () => {
+    passwordForm.put(route('admin.akun.password', passwordTarget.value.id), {
+        onSuccess: closePasswordModal,
     });
 };
 

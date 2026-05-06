@@ -7,7 +7,7 @@
                 <p class="text-white/80 text-sm mt-1">
                     {{ roleLabel }} — Sistem Informasi Buka Usaha Kecil
                 </p>
-                <p class="text-white/60 text-xs mt-1">Pemerintah Daerah Kota Contoh</p>
+                <p class="text-white/60 text-xs mt-1">Pemerintah Daerah Kota Hormuz</p>
             </div>
 
             <!-- Statistik perizinan -->

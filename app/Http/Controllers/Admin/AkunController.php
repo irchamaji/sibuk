@@ -51,7 +51,7 @@ class AkunController extends Controller
         User::create([
             'name'     => $request->name,
             'email'    => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,   // cast 'hashed' di model otomatis hash
             'role'     => $request->role,
         ]);
 
@@ -83,6 +83,30 @@ class AkunController extends Controller
         ]);
 
         return back()->with('success', 'Akun berhasil diperbarui.');
+    }
+
+    /**
+     * Reset password akun oleh superadmin.
+     * Tidak perlu verifikasi password lama.
+     */
+    public function updatePassword(Request $request, User $user)
+    {
+        $request->validate([
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8)->mixedCase()->numbers(),
+            ],
+        ], [
+            'password.required'  => 'Password baru wajib diisi.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+        ]);
+
+        $user->update([
+            'password' => $request->password,   // cast 'hashed' di model otomatis hash
+        ]);
+
+        return back()->with('success', 'Password akun ' . $user->name . ' berhasil diperbarui.');
     }
 
     /**

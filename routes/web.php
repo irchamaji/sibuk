@@ -78,6 +78,7 @@ Route::middleware(['auth', 'session.timeout'])->group(function () {
         Route::get('/akun', [Admin\AkunController::class, 'index'])->name('akun.index');
         Route::post('/akun', [Admin\AkunController::class, 'store'])->name('akun.store');
         Route::put('/akun/{user}', [Admin\AkunController::class, 'update'])->name('akun.update');
+        Route::put('/akun/{user}/password', [Admin\AkunController::class, 'updatePassword'])->name('akun.password');
         Route::delete('/akun/{user}', [Admin\AkunController::class, 'destroy'])->name('akun.destroy');
     });
 });

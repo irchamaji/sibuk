@@ -44,9 +44,9 @@ class PerizinanController extends Controller
             'nama_usaha'   => 'required|string|max:255',
             'lokasi_usaha' => 'required|string',
             'omzet'        => 'required|integer|min:0',
-            // File Upload Validasi: hanya cek ukuran maksimal 5MB
+            // File Upload: hanya simpan nama file (string), tidak upload binary
             // Tidak ada validasi format/tipe file - intentional untuk simulasi audit
-            'surat_kepemilikan' => 'nullable|file|max:5120',
+            'surat_kepemilikan' => 'nullable|string|max:255',
         ], [
             'nama_pemohon.required'  => 'Nama pemohon wajib diisi.',
             'nama_usaha.required'    => 'Nama usaha wajib diisi.',
@@ -56,13 +56,10 @@ class PerizinanController extends Controller
             'surat_kepemilikan.max'  => 'Ukuran file maksimal 5MB.',
         ]);
 
-        // File Upload: simpan file ke storage jika ada
-        $filePath = null;
-        if ($request->hasFile('surat_kepemilikan')) {
-            // File Upload Validasi: tidak ada cek tipe file (intentional)
-            $filePath = $request->file('surat_kepemilikan')
-                ->store('surat-kepemilikan', 'public');
-        }
+        // File Upload: simpan nama file sebagai string saja
+        // Binary tidak dikirim ke server — tidak ada storage write, tidak ada temp file
+        // Simulasi audit: tidak ada validasi format/tipe file (intentional)
+        $filePath = $request->input('surat_kepemilikan');
 
         // Simpan data perizinan baru dengan status default Pengajuan
         Perizinan::create([

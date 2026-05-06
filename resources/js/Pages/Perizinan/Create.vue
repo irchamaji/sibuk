@@ -7,7 +7,7 @@
                     Isi semua data di bawah untuk mengajukan izin usaha kecil menengah Anda.
                 </p>
 
-                <form @submit.prevent="submit" enctype="multipart/form-data" class="space-y-5">
+                <form @submit.prevent="submit" class="space-y-5">
                     <!-- Validasi Input Form: Nama Pemohon -->
                     <div>
                         <label class="form-label">Nama Pemohon <span class="text-red-500">*</span></label>
@@ -64,7 +64,7 @@
 
                     <!-- File Upload: Surat Kepemilikan Usaha (tanpa validasi format) -->
                     <div>
-                        <label class="form-label">Surat Kepemilikan Usaha</label>
+                        <label class="form-label">Surat Pengantar dari RT/RW</label>
                         <div class="mt-1 border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-gray-400 transition-colors">
                             <input
                                 ref="fileInput"
@@ -72,13 +72,13 @@
                                 class="hidden"
                                 @change="handleFileChange"
                             />
-                            <div class="text-center cursor-pointer" @click="fileInput.click()">
+                            <div class="text-center cursor-pointer" @click.prevent="fileInput.click()">
                                 <svg class="w-8 h-8 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                           d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
                                 <p v-if="selectedFileName" class="text-sm font-medium" style="color: #895129;">{{ selectedFileName }}</p>
-                                <p v-else class="text-sm text-gray-500">Klik untuk upload file PDF surat kepemilikan</p>
+                                <p v-else class="text-sm text-gray-500">Klik untuk upload file PDF surat pengantar</p>
                                 <p class="text-xs text-gray-400 mt-1">Ukuran maksimal: 5MB</p>
                             </div>
                         </div>
@@ -114,21 +114,20 @@ const form = useForm({
     surat_kepemilikan: null,
 });
 
-const fileInput    = ref(null);
+const fileInput        = ref(null);
 const selectedFileName = ref('');
 
-// File Upload: handle perubahan file yang dipilih
+// File Upload: simpan nama file saja — tidak transmit binary ke server
+// Simulasi audit: UI upload tetap ada, tidak ada validasi tipe file (intentional)
 const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file) {
-        form.surat_kepemilikan = file;
+        form.surat_kepemilikan = file.name;  // string, bukan File object
         selectedFileName.value = file.name;
     }
 };
 
 const submit = () => {
-    form.post(route('perizinan.store'), {
-        forceFormData: true,
-    });
+    form.post(route('perizinan.store'));  // regular JSON, tidak ada multipart
 };
 </script>

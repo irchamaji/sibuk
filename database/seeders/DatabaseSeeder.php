@@ -52,7 +52,7 @@ class DatabaseSeeder extends Seeder
                 'user_id'      => $pengguna->id,
                 'nama_pemohon' => 'Budi Santoso',
                 'nama_usaha'   => 'Warung Makan Pak Budi',
-                'lokasi_usaha' => 'Jl. Merdeka No. 10, Kelurahan Sukamaju, Kecamatan Tengah, Kota Contoh',
+                'lokasi_usaha' => 'Jl. Merdeka No. 10, Kelurahan Sukamaju, Kecamatan Tengah, Kota Hormuz',
                 'omzet'        => 5000000,
                 'status'       => 'Pengajuan',
             ]);
@@ -61,7 +61,7 @@ class DatabaseSeeder extends Seeder
                 'user_id'      => $pengguna->id,
                 'nama_pemohon' => 'Budi Santoso',
                 'nama_usaha'   => 'Toko Kelontong Santoso',
-                'lokasi_usaha' => 'Jl. Pahlawan No. 5, Kelurahan Damai, Kecamatan Selatan, Kota Contoh',
+                'lokasi_usaha' => 'Jl. Pahlawan No. 5, Kelurahan Damai, Kecamatan Selatan, Kota Hormuz',
                 'omzet'        => 3000000,
                 'status'       => 'Diizinkan',
                 'catatan_admin' => 'Dokumen lengkap, usaha sudah berjalan.',
